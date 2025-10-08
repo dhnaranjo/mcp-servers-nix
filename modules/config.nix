@@ -22,6 +22,7 @@
       type = lib.types.enum [
         "claude"
         "codex"
+        "opencode"
         "vscode"
         "vscode-workspace"
         "zed"
@@ -31,6 +32,7 @@
         Configuration file type.
         - "claude": Standard Claude Desktop configuration format using "mcpServers" key
         - "codex": Codex CLI configuration format using "mcp_servers" key
+        - "opencode": OpenCode configuration format with top-level "mcp" key and type-based structure
         - "vscode": VSCode global configuration format using "mcp.servers" keys
         - "vscode-workspace": VSCode workspace configuration format with top-level "servers" key,
         - "zed": Zed configuration format with top-level "context_servers" key,
@@ -63,6 +65,8 @@
       keys =
         if (config.flavor == "codex") then
           [ "mcp_servers" ]
+        else if (config.flavor == "opencode") then
+          [ "mcp" ]
         else if (config.flavor == "vscode") then
           [
             "mcp"

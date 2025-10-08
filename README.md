@@ -205,6 +205,7 @@ Check the `examples` directory for complete configuration examples:
 - [`vscode.nix`](./examples/vscode.nix): VS Code integration setup
 - [`librechat.nix`](./examples/librechat.nix): Configuration for LibreChat integration
 - [`codex.nix`](./examples/codex.nix): Codex CLI integration with MCP servers
+- [`opencode.nix`](./examples/opencode.nix): OpenCode terminal AI agent integration
 - [`vscode-workspace`](./examples/vscode-workspace/flake.nix): VS Code workspace configuration example
 
 ### Real World Examples
@@ -218,7 +219,7 @@ Each module provides specific configuration options, but there are some common o
 ### Global Options
 
 - `format`: Configuration file format (`json`, `yaml`, or `toml-inline`, default: `json`)
-- `flavor`: Configuration file type (`claude`, `vscode`, or `codex`, default: `claude`)
+- `flavor`: Configuration file type (`claude`, `codex`, `opencode`, `vscode`, `vscode-workspace`, or `zed`, default: `claude`)
 - `fileName`: Configuration file name (default: `claude_desktop_config.json`)
 - `settings`: Custom settings that will be merged with the generated configuration
 
@@ -233,6 +234,8 @@ Each enabled module (using `programs.<module>.enable = true;`) provides the foll
 - `url`: URL of the server for "sse" connections (default: `null`)
 - `envFile`: Path to an .env file from which to load additional environment variables (default: `null`)
 - `passwordCommand`: Command to execute to retrieve secrets. Can be specified as a string that outputs in the format "KEY=VALUE" which will be exported as environment variables, or as an attribute set where keys are environment variable names and values are command lists that output the value. Useful for integrating with password managers (default: `null`)
+- `enabled`: Whether the server should be enabled on startup - only used with `opencode` flavor (default: `true`)
+- `headers`: HTTP headers for remote MCP servers - only used with `opencode` flavor when `type = "sse"` (default: `null`)
 
 ### Security Note
 
@@ -260,6 +263,58 @@ The framework includes modules for the following MCP servers:
 - [serena](./modules/serena.nix)
 - [terraform](./modules/terraform.nix)
 - [time](./modules/time.nix)
+
+## OpenCode Integration
+
+[OpenCode](https://opencode.ai/) is an open-source AI coding agent that runs in your terminal. To use MCP servers with OpenCode, set the `flavor` to `"opencode"`:
+
+```nix
+mcp-servers.lib.mkConfig pkgs {
+  flavor = "opencode";
+  format = "json";
+  fileName = "opencode.json";
+  
+  programs = {
+    # Local MCP server
+    filesystem = {
+      enable = true;
+      args = [ "/path/to/directory" ];
+    };
+    
+    # Local server with environment file
+    github = {
+      enable = true;
+      envFile = ./github-token;
+    };
+    
+    # Remote MCP server (optional)
+    # remote-server = {
+    #   enable = true;
+    #   type = "sse";
+    #   url = "https://example.com/mcp";
+    #   headers = {
+    #     Authorization = "Bearer token";
+    #   };
+    # };
+  };
+  
+  # Additional OpenCode settings
+  settings = {
+    model = "anthropic/claude-sonnet-4-20250514";
+    theme = "opencode";
+  };
+}
+```
+
+The OpenCode flavor produces a configuration with:
+- Top-level `mcp` key containing all servers
+- `type` field set to `"local"` (for stdio servers) or `"remote"` (for SSE servers)
+- `command` as an array containing the executable and arguments
+- `environment` instead of `env` for environment variables
+- `enabled` field to control whether servers start automatically
+- `headers` support for remote servers
+
+See [`examples/opencode.nix`](./examples/opencode.nix) for a complete example.
 
 ## Adding Custom Servers
 

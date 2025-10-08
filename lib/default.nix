@@ -105,9 +105,33 @@ let
             }
           '';
         };
+        enabled = lib.mkOption {
+          type = lib.types.bool;
+          default = true;
+          description = ''
+            Whether the server should be enabled on startup.
+            Only used when flavor is "opencode".
+          '';
+        };
+        headers = lib.mkOption {
+          type = lib.types.nullOr (lib.types.attrsOf lib.types.str);
+          default = null;
+          description = ''
+            HTTP headers for remote MCP servers.
+            Only applicable when type is "sse" and flavor is "opencode".
+          '';
+        };
       };
 
-      config.settings.servers =
+      config = {
+        assertions = lib.mkIf (cfg.enable && config.flavor == "opencode") [
+          {
+            assertion = (cfg.type != "sse") || (cfg.url != null);
+            message = "OpenCode remote servers (type = sse) require a url for server '${name}'";
+          }
+        ];
+
+        settings.servers =
         let
           exportEnvFile = (cfg.envFile != null) && (config.flavor != "vscode");
           exportPasswordCommand = cfg.passwordCommand != null;
@@ -131,21 +155,50 @@ let
             ${lib.getExe cfg.package} "$@"
           '';
           package = if doWrap then wrapped-package else cfg.package;
+
+          # OpenCode-specific transformation
+          opencodeConfig =
+            let
+              serverType = if cfg.type == "sse" then "remote" else "local";
+              baseConfig = {
+                type = serverType;
+                enabled = cfg.enabled;
+              };
+              localConfig = baseConfig // {
+                command = [ (lib.getExe package) ] ++ cfg.args;
+                environment = cfg.env;
+              };
+              remoteConfig = baseConfig // {
+                url = cfg.url;
+              } // lib.optionalAttrs (cfg.headers != null) {
+                headers = cfg.headers;
+              };
+            in
+            if serverType == "remote" then remoteConfig else localConfig;
+
+          # Standard (non-OpenCode) configuration
+          standardConfig = {
+            command = lib.mkDefault "${lib.getExe package}";
+            inherit (cfg)
+              args
+              env
+              type
+              url
+              ;
+          } // lib.optionalAttrs (config.flavor == "vscode") {
+            inherit (cfg) envFile;
+          };
+
         in
         lib.mkIf cfg.enable {
           ${name} = lib.filterAttrs (k: v: v != null) (
-            {
-              command = lib.mkDefault "${lib.getExe package}";
-              inherit (cfg)
-                args
-                env
-                type
-                url
-                ;
-            }
-            // lib.optionalAttrs (config.flavor == "vscode") { inherit (cfg) envFile; }
+            if (config.flavor == "opencode") then
+              opencodeConfig
+            else
+              standardConfig
           );
         };
+      };
     };
   evalModule =
     nixpkgs: config:
