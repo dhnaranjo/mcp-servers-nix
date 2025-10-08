@@ -16,16 +16,12 @@ mcp-servers.lib.mkConfig pkgs {
       args = [ "/path/to/allowed/directory" ];
     };
 
-    # Local server with envFile
+    # Local server with environment variables
     github = {
       enable = true;
-      envFile = ./dummy-gh-token;
-    };
-
-    # Local server that can be disabled
-    fetch = {
-      enable = true;
-      enabled = false; # Disabled in OpenCode config
+      env = {
+        GITHUB_PERSONAL_ACCESS_TOKEN = "dummy-token";
+      };
     };
 
     # Example of remote server (commented out as it needs a real URL)
@@ -33,15 +29,6 @@ mcp-servers.lib.mkConfig pkgs {
     #   enable = true;
     #   type = "sse";
     #   url = "https://example.com/mcp";
-    #   headers = {
-    #     Authorization = "Bearer token123";
-    #   };
     # };
-  };
-
-  # Additional OpenCode-specific settings
-  settings = {
-    model = "anthropic/claude-sonnet-4-20250514";
-    theme = "opencode";
   };
 }

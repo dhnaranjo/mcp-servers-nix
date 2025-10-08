@@ -281,10 +281,12 @@ mcp-servers.lib.mkConfig pkgs {
       args = [ "/path/to/directory" ];
     };
     
-    # Local server with environment file
+    # Local server with environment variables
     github = {
       enable = true;
-      envFile = ./github-token;
+      env = {
+        GITHUB_PERSONAL_ACCESS_TOKEN = "your-token-here";
+      };
     };
     
     # Remote MCP server (optional)
@@ -292,27 +294,17 @@ mcp-servers.lib.mkConfig pkgs {
     #   enable = true;
     #   type = "sse";
     #   url = "https://example.com/mcp";
-    #   headers = {
-    #     Authorization = "Bearer token";
-    #   };
     # };
-  };
-  
-  # Additional OpenCode settings
-  settings = {
-    model = "anthropic/claude-sonnet-4-20250514";
-    theme = "opencode";
   };
 }
 ```
 
-The OpenCode flavor produces a configuration with:
-- Top-level `mcp` key containing all servers
-- `type` field set to `"local"` (for stdio servers) or `"remote"` (for SSE servers)
-- `command` as an array containing the executable and arguments
-- `environment` instead of `env` for environment variables
-- `enabled` field to control whether servers start automatically
-- `headers` support for remote servers
+The OpenCode flavor automatically transforms the configuration:
+- Uses top-level `mcp` key (instead of `mcpServers`)
+- Sets `type` to `"local"` (for stdio) or `"remote"` (for SSE)
+- Formats `command` as an array: `[executable, ...args]`
+- Renames `env` to `environment` for local servers
+- Omits `command` and `environment` for remote servers
 
 See [`examples/opencode.nix`](./examples/opencode.nix) for a complete example.
 

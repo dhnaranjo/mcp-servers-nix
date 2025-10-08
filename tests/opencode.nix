@@ -17,14 +17,11 @@ in
               TEST_VAR = "value";
             };
           };
-          # Remote server with headers
+          # Remote server
           fetch = {
             enable = true;
             type = "sse";
             url = "https://example.com";
-            headers = {
-              Authorization = "Bearer token";
-            };
           };
         };
       };
@@ -46,8 +43,8 @@ in
         # Remote server transformations
         test "$(jq -r '.mcp.fetch.type' ${evaluated-module.config.configFile})" = "remote"
         test "$(jq -r '.mcp.fetch.url' ${evaluated-module.config.configFile})" = "https://example.com"
-        jq -e '.mcp.fetch.headers.Authorization' ${evaluated-module.config.configFile} > /dev/null
         test "$(jq -r '.mcp.fetch.command' ${evaluated-module.config.configFile})" = "null"
+        test "$(jq -r '.mcp.fetch.environment' ${evaluated-module.config.configFile})" = "null"
         
         touch $out
       '';

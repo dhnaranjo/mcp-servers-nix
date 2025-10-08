@@ -105,33 +105,9 @@ let
             }
           '';
         };
-        enabled = lib.mkOption {
-          type = lib.types.bool;
-          default = true;
-          description = ''
-            Whether the server should be enabled on startup.
-            Only used when flavor is "opencode".
-          '';
-        };
-        headers = lib.mkOption {
-          type = lib.types.nullOr (lib.types.attrsOf lib.types.str);
-          default = null;
-          description = ''
-            HTTP headers for remote MCP servers.
-            Only applicable when type is "sse" and flavor is "opencode".
-          '';
-        };
       };
 
-      config = {
-        assertions = lib.mkIf (cfg.enable && config.flavor == "opencode") [
-          {
-            assertion = (cfg.type != "sse") || (cfg.url != null);
-            message = "OpenCode remote servers (type = sse) require a url for server '${name}'";
-          }
-        ];
-
-        settings.servers =
+      config.settings.servers =
         let
           exportEnvFile = (cfg.envFile != null) && (config.flavor != "vscode");
           exportPasswordCommand = cfg.passwordCommand != null;
@@ -160,18 +136,14 @@ let
           opencodeConfig =
             let
               serverType = if cfg.type == "sse" then "remote" else "local";
-              baseConfig = {
+              localConfig = {
                 type = serverType;
-                enabled = cfg.enabled;
-              };
-              localConfig = baseConfig // {
                 command = [ (lib.getExe package) ] ++ cfg.args;
                 environment = cfg.env;
               };
-              remoteConfig = baseConfig // {
+              remoteConfig = {
+                type = serverType;
                 url = cfg.url;
-              } // lib.optionalAttrs (cfg.headers != null) {
-                headers = cfg.headers;
               };
             in
             if serverType == "remote" then remoteConfig else localConfig;
@@ -198,7 +170,6 @@ let
               standardConfig
           );
         };
-      };
     };
   evalModule =
     nixpkgs: config:
